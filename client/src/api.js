@@ -1,9 +1,31 @@
-import axios from 'axios';
+import { supabase } from './supabaseClient';
 
-const API = axios.create({ baseURL: process.env.REACT_APP_API_URL || '/api' });
+export const fetchItems = async () => {
+  const { data, error } = await supabase.from('items').select('*');
+  if (error) throw error;
+  return data;
+};
 
-export const fetchItems = (params) => API.get('/items', { params }).then(r => r.data);
-export const getItem = (id) => API.get(`/items/${id}`).then(r => r.data);
-export const createItem = (payload) => API.post('/items', payload).then(r => r.data);
-export const updateItem = (id, payload) => API.put(`/items/${id}`, payload).then(r => r.data);
-export const deleteItem = (id) => API.delete(`/items/${id}`);
+export const getItem = async (id) => {
+  const { data, error } = await supabase.from('items').select('*').eq('id', id).single();
+  if (error) throw error;
+  return data;
+};
+
+export const createItem = async (payload) => {
+  const { data, error } = await supabase.from('items').insert(payload).select().single();
+  if (error) throw error;
+  return data;
+};
+
+export const updateItem = async (id, payload) => {
+  const { data, error } = await supabase.from('items').update(payload).eq('id', id).select().single();
+  if (error) throw error;
+  return data;
+};
+
+export const deleteItem = async (id) => {
+  const { error } = await supabase.from('items').delete().eq('id', id);
+  if (error) throw error;
+  return true;
+};
