@@ -1,66 +1,52 @@
-import { query } from './db.js';
+import { supabase } from '../../lib/supabaseClient'
 
 export default async function handler(req, res) {
   if (req.method === 'GET') {
     try {
-      const { q, category, minQty, page = 1, perPage = 20, sort = 'created_at', order = 'desc' } = req.query;
-      const offset = (page - 1) * perPage;
+      const { q, category, minQty, page = 1, perPage = 20, sort = 'created_at', order = 'desc' } = req.query
+      const from = (page - 1) * perPage
+      const to = from + perPage - 1
 
-      const whereClauses = [];
-      const params = [];
-      let idx = 1;
+      let query = supabase.from('items').select('*', { count: 'exact' })
 
-      if (q) {
-        whereClauses.push(`lower(name) LIKE '%' || lower($${idx++}) || '%'`);
-        params.push(q);
-      }
-      if (category) {
-        whereClauses.push(`category = $${idx++}`);
-        params.push(category);
-      }
-      if (minQty) {
-        whereClauses.push(`quantity >= $${idx++}`);
-        params.push(minQty);
-      }
+      if (q) query = query.ilike('name', `%${q}%`)
+      if (category) query = query.eq('category', category)
+      if (minQty) query = query.gte('quantity', minQty)
 
-      const where = whereClauses.length ? 'WHERE ' + whereClauses.join(' AND ') : '';
+      const allowedSort = ['created_at','price','name','quantity']
+      const sortField = allowedSort.includes(sort) ? sort : 'created_at'
+      const orderDir = order.toLowerCase() === 'asc' ? { ascending: true } : { ascending: false }
 
-      const allowedSort = ['created_at','price','name','quantity'];
-      const sortField = allowedSort.includes(sort) ? sort : 'created_at';
-      const orderDir = order && order.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
+      query = query.order(sortField, orderDir).range(from, to)
 
-      const sql = `
-        SELECT * FROM items
-        ${where}
-        ORDER BY ${sortField} ${orderDir}
-        LIMIT $${idx++} OFFSET $${idx++}
-      `;
+      const { data, error } = await query
 
-      params.push(perPage);
-      params.push(offset);
-
-      const { rows } = await query(sql, params);
-      res.status(200).json({ data: rows });
+      if (error) throw error
+      res.status(200).json({ data })
     } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: 'server error' });
+      console.error(err)
+      res.status(500).json({ error: 'server error' })
     }
   }
+
   else if (req.method === 'POST') {
     try {
-      const { name, category, quantity = 0, price = null, status = 'active' } = req.body;
-      const { rows } = await query(
-        `INSERT INTO items (name, category, quantity, price, status) VALUES ($1,$2,$3,$4,$5) RETURNING *`,
-        [name, category, quantity, price, status]
-      );
-      res.status(201).json(rows[0]);
+      const { name, category, quantity = 0, price = null, status = 'active' } = req.body
+      const { data, error } = await supabase
+        .from('items')
+        .insert([{ name, category, quantity, price, status }])
+        .select()
+
+      if (error) throw error
+      res.status(201).json(data[0])
     } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: 'server error' });
+      console.error(err)
+      res.status(500).json({ error: 'server error' })
     }
   }
+
   else {
-    res.setHeader('Allow', ['GET','POST']);
-    res.status(405).end(`Method ${req.method} Not Allowed`);
+    res.setHeader('Allow', ['GET','POST'])
+    res.status(405).end(`Method ${req.method} Not Allowed`)
   }
 }
