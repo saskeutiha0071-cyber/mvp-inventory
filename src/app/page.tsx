@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import styles from './globals.css';
 
 interface Expense {
   id: number;
