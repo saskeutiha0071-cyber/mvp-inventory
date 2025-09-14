@@ -2,35 +2,34 @@
 
 import { useState, useEffect } from 'react';
 
-interface Expense {
+interface Product {
   id: number;
-  description: string;
-  amount: number;
-  date: string;
+  name: string;
+  quantity: number;
+  price: number;
   createdAt: string;
 }
 
 export default function Home() {
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [description, setDescription] = useState('');
-  const [amount, setAmount] = useState('');
+  const [products, setProducts] = useState<Product[]>([]);
+  const [name, setName] = useState('');
+  const [quantity, setQuantity] = useState('');
+  const [price, setPrice] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Загрузка данных
   useEffect(() => {
-    async function fetchExpenses() {
+    async function fetchProducts() {
       try {
-        const response = await fetch('/api/expenses');
+        const response = await fetch('/api/products');
         if (!response.ok) {
           throw new Error(`Ошибка HTTP: ${response.status}`);
         }
         const data = await response.json();
-        // Проверяем, является ли data массивом
         if (!Array.isArray(data)) {
           throw new Error('Данные не являются массивом');
         }
-        setExpenses(data);
+        setProducts(data);
       } catch (err: any) {
         setError(err.message || 'Не удалось загрузить данные');
         console.error('Fetch error:', err);
@@ -38,25 +37,29 @@ export default function Home() {
         setLoading(false);
       }
     }
-    fetchExpenses();
+    fetchProducts();
   }, []);
 
-  // Обработка отправки формы
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await fetch('/api/expenses', {
+      const response = await fetch('/api/products', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ description, amount: parseFloat(amount) }),
+        body: JSON.stringify({
+          name,
+          quantity: parseInt(quantity),
+          price: parseFloat(price),
+        }),
       });
       if (!response.ok) {
         throw new Error(`Ошибка HTTP: ${response.status}`);
       }
-      const newExpense = await response.json();
-      setExpenses([...expenses, newExpense]);
-      setDescription('');
-      setAmount('');
+      const newProduct = await response.json();
+      setProducts([...products, newProduct]);
+      setName('');
+      setQuantity('');
+      setPrice('');
     } catch (err: any) {
       setError(err.message || 'Не удалось добавить запись');
       console.error('Submit error:', err);
@@ -65,26 +68,36 @@ export default function Home() {
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Учёт расходов</h1>
+      <h1 className="text-2xl font-bold mb-4">Учёт склада</h1>
 
-      {/* Форма */}
       <form onSubmit={handleSubmit} className="mb-4">
         <div className="mb-2">
-          <label className="block text-sm font-medium">Описание</label>
+          <label className="block text-sm font-medium">Название</label>
           <input
             type="text"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
             className="border p-2 w-full"
             required
           />
         </div>
         <div className="mb-2">
-          <label className="block text-sm font-medium">Сумма</label>
+          <label className="block text-sm font-medium">Количество</label>
           <input
             type="number"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
+            value={quantity}
+            onChange={(e) => setQuantity(e.target.value)}
+            className="border p-2 w-full"
+            required
+            step="1"
+          />
+        </div>
+        <div className="mb-2">
+          <label className="block text-sm font-medium">Цена</label>
+          <input
+            type="number"
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
             className="border p-2 w-full"
             required
             step="0.01"
@@ -95,29 +108,29 @@ export default function Home() {
         </button>
       </form>
 
-      {/* Ошибка */}
       {error && <p className="text-red-500">{error}</p>}
 
-      {/* Таблица */}
       {loading ? (
         <p>Загрузка...</p>
-      ) : expenses.length === 0 ? (
+      ) : products.length === 0 ? (
         <p>Нет данных</p>
       ) : (
         <table className="w-full border">
           <thead>
             <tr>
-              <th className="border p-2">Описание</th>
-              <th className="border p-2">Сумма</th>
+              <th className="border p-2">Название</th>
+              <th className="border p-2">Количество</th>
+              <th className="border p-2">Цена</th>
               <th className="border p-2">Дата</th>
             </tr>
           </thead>
           <tbody>
-            {expenses.map((expense) => (
-              <tr key={expense.id}>
-                <td className="border p-2">{expense.description}</td>
-                <td className="border p-2">{expense.amount}</td>
-                <td className="border p-2">{new Date(expense.date).toLocaleDateString()}</td>
+            {products.map((product) => (
+              <tr key={product.id}>
+                <td className="border p-2">{product.name}</td>
+                <td className="border p-2">{product.quantity}</td>
+                <td className="border p-2">{product.price}</td>
+                <td className="border p-2">{new Date(product.createdAt).toLocaleDateString()}</td>
               </tr>
             ))}
           </tbody>
