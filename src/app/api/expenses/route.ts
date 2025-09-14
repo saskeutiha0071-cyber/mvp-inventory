@@ -1,12 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 
 const prisma = new PrismaClient();
+
 const expenseSchema = z.object({
-  description: z.string().min(1),
-  amount: z.number().positive(),
-  date: z.string().optional(),
+  description: z.string().min(1, 'Описание обязательно'),
+  amount: z.number().positive('Сумма должна быть положительной'),
 });
 
 export async function GET() {
@@ -14,17 +14,25 @@ export async function GET() {
     const expenses = await prisma.expense.findMany();
     return NextResponse.json(expenses);
   } catch (error) {
-    return NextResponse.json({ error: 'Ошибка сервера' }, { status: 500 });
+    console.error('GET /api/expenses error:', error);
+    return NextResponse.json({ error: 'Ошибка сервера при получении данных' }, { status: 500 });
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const validated = expenseSchema.parse(body);
-    const expense = await prisma.expense.create({ data: validated });
+    const { description, amount } = expenseSchema.parse(body);
+    const expense = await prisma.expense.create({
+      data: { description, amount },
+    });
     return NextResponse.json(expense, { status: 201 });
   } catch (error) {
-    return NextResponse.json({ error: 'Неверные данные' }, { status: 400 });
+    console.error('POST /api/expenses error:', error);
+    return NextResponse.json({ error: 'Ошибка при добавлении записи' }, { status: 400 });
+  } finally {
+    await prisma.$disconnect();
   }
 }
