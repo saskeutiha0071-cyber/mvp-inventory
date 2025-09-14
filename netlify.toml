@@ -1,0 +1,6 @@
+```toml
+   [[headers]]
+     for = "/*"
+     [headers.values]
+       Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.supabase.co wss://*.supabase.co"
+   ```
