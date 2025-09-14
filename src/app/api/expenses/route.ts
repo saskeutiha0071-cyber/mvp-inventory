@@ -4,17 +4,18 @@ import { z } from 'zod';
 
 const prisma = new PrismaClient();
 
-const expenseSchema = z.object({
-  description: z.string().min(1, 'Описание обязательно'),
-  amount: z.number().positive('Сумма должна быть положительной'),
+const productSchema = z.object({
+  name: z.string().min(1, 'Название обязательно'),
+  quantity: z.number().int().nonnegative('Количество должно быть неотрицательным'),
+  price: z.number().positive('Цена должна быть положительной'),
 });
 
 export async function GET() {
   try {
-    const expenses = await prisma.expense.findMany();
-    return NextResponse.json(expenses);
+    const products = await prisma.product.findMany();
+    return NextResponse.json(products);
   } catch (error: any) {
-    console.error('GET /api/expenses error:', {
+    console.error('GET /api/products error:', {
       message: error.message,
       stack: error.stack,
       code: error.code,
@@ -31,13 +32,13 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { description, amount } = expenseSchema.parse(body);
-    const expense = await prisma.expense.create({
-      data: { description, amount },
+    const { name, quantity, price } = productSchema.parse(body);
+    const product = await prisma.product.create({
+      data: { name, quantity, price },
     });
-    return NextResponse.json(expense, { status: 201 });
+    return NextResponse.json(product, { status: 201 });
   } catch (error: any) {
-    console.error('POST /api/expenses error:', {
+    console.error('POST /api/products error:', {
       message: error.message,
       stack: error.stack,
       code: error.code,
