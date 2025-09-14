@@ -8,9 +8,9 @@ datasource db {
 }
 
 model Expense {
-  id          Int      @id @default(autoincrement())
+  id        Int       @id @default(autoincrement())
   description String
-  amount      Float
-  date        DateTime @default(now())
-  createdAt   DateTime @default(now())
+  amount    Float
+  date      DateTime  @default(now())
+  createdAt DateTime  @default(now())
 }
